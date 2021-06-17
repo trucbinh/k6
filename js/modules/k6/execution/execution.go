@@ -23,6 +23,7 @@ package execution
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/dop251/goja"
 
@@ -88,10 +89,16 @@ func (e *Execution) GetScenarioStats(ctx context.Context) (goja.Value, error) {
 		iterGlobal = goja.Null()
 	}
 
+	// Convert to JS Date, see https://github.com/dop251/goja/issues/170
+	startTime, err := rt.New(rt.GlobalObject().Get("Date").ToObject(rt),
+		rt.ToValue(ss.StartTime.UnixNano()/1e6))
+	if err != nil {
+		return nil, fmt.Errorf("error initializing Date object: %w", err)
+	}
 	stats := map[string]interface{}{
 		"name":      ss.Name,
 		"executor":  ss.Executor,
-		"startTime": ss.StartTime,
+		"startTime": startTime,
 		"progress": func() goja.Value {
 			p, _ := ss.ProgressFn()
 			return rt.ToValue(p)

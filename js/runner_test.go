@@ -2050,11 +2050,9 @@ func TestExecutionStats(t *testing.T) {
 		exports.default = function() {
 			var ss = exec.getScenarioStats();
 			sleep(0.1);
-			// goja's Date handling is weird, see https://github.com/dop251/goja/issues/170
-			var startTime = new Date(JSON.parse(JSON.stringify(ss.startTime)));
 			if (ss.name !== 'default') throw new Error('unexpected scenario name: '+ss.name);
 			if (ss.executor !== 'test-exec') throw new Error('unexpected executor: '+ss.executor);
-			if (startTime > new Date()) throw new Error('unexpected startTime: '+startTime);
+			if (ss.startTime > new Date()) throw new Error('unexpected startTime: '+ss.startTime);
 			if (ss.progress !== 0.1) throw new Error('unexpected progress: '+ss.progress);
 			if (ss.iteration !== 3) throw new Error('unexpected scenario local iteration: '+ss.iteration);
 			if (ss.iterationGlobal !== 4) throw new Error('unexpected scenario local iteration: '+ss.iterationGlobal);
