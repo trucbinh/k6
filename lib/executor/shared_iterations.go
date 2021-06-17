@@ -190,8 +190,15 @@ func (si SharedIterations) Run(parentCtx context.Context, out chan<- stats.Sampl
 	duration := time.Duration(si.config.MaxDuration.Duration)
 	gracefulStop := si.config.GetGracefulStop()
 
-	startTime, maxDurationCtx, regDurationCtx, cancel := getDurationContexts(parentCtx, duration, gracefulStop)
+	scState := &lib.ScenarioState{
+		Name:     si.config.Name,
+		Executor: si.config.Type,
+	}
+	ctxWithScState := lib.WithScenarioState(parentCtx, scState)
+
+	startTime, maxDurationCtx, regDurationCtx, cancel := getDurationContexts(ctxWithScState, duration, gracefulStop)
 	defer cancel()
+	scState.StartTime = startTime
 
 	// Make sure the log and the progress bar have accurate information
 	si.logger.WithFields(logrus.Fields{
@@ -214,8 +221,9 @@ func (si SharedIterations) Run(parentCtx context.Context, out chan<- stats.Sampl
 
 		return float64(currentDoneIters) / float64(totalIters), right
 	}
+	scState.ProgressFn = progressFn
 	si.progress.Modify(pb.WithProgress(progressFn))
-	go trackProgress(parentCtx, maxDurationCtx, regDurationCtx, &si, progressFn)
+	go trackProgress(ctxWithScState, maxDurationCtx, regDurationCtx, &si, progressFn)
 
 	var attemptedIters uint64
 
@@ -224,7 +232,7 @@ func (si SharedIterations) Run(parentCtx context.Context, out chan<- stats.Sampl
 	defer func() {
 		activeVUs.Wait()
 		if attemptedIters < totalIters {
-			stats.PushIfNotDone(parentCtx, out, stats.Sample{
+			stats.PushIfNotDone(ctxWithScState, out, stats.Sample{
 				Value: float64(totalIters - attemptedIters), Metric: metrics.DroppedIterations,
 				Tags: si.getMetricTags(nil), Time: time.Now(),
 			})
@@ -233,13 +241,6 @@ func (si SharedIterations) Run(parentCtx context.Context, out chan<- stats.Sampl
 
 	regDurationDone := regDurationCtx.Done()
 	runIteration := getIterationRunner(si.executionState, si.logger)
-
-	maxDurationCtx = lib.WithScenarioState(maxDurationCtx, &lib.ScenarioState{
-		Name:       si.config.Name,
-		Executor:   si.config.Type,
-		StartTime:  startTime,
-		ProgressFn: progressFn,
-	})
 
 	returnVU := func(u lib.InitializedVU) {
 		si.executionState.ReturnVU(u, true)
