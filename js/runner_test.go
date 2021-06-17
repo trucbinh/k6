@@ -2035,7 +2035,6 @@ func TestExecutionStats(t *testing.T) {
 			var vuStats = exec.getVUStats();
 			if (vuStats.id !== 1) throw new Error('unexpected VU ID: '+vuStats.id);
 			if (vuStats.idGlobal !== 10) throw new Error('unexpected global VU ID: '+vuStats.idGlobal);
-			if (vuStats.idScenario !== 2) throw new Error('unexpected scenario VU ID: '+vuStats.idScenario);
 			if (vuStats.iteration !== 0) throw new Error('unexpected VU iteration: '+vuStats.iteration);
 			if (vuStats.iterationScenario !== 0) throw new Error('unexpected scenario iteration: '+vuStats.iterationScenario);
 		}`},
@@ -2112,7 +2111,6 @@ func TestExecutionStats(t *testing.T) {
 			vu := initVU.Activate(&lib.VUActivationParams{
 				RunContext:               ctx,
 				Exec:                     "default",
-				GetNextScVUID:            func() uint64 { return 2 },
 				GetNextIterationCounters: func() (uint64, uint64) { return 3, 4 },
 			})
 
